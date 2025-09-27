@@ -1,7 +1,6 @@
 from .recognizer import GestureRecognizer, GestureEvent
 
 __all__ = [
-	"GestureRecognizer",
-	"GestureEvent",
+    "GestureRecognizer",
+    "GestureEvent",
 ]
-

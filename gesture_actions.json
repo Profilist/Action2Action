@@ -1,0 +1,17 @@
+{
+	"min_confidence": 0.7,
+	"cooldowns_ms": {
+		"swipe_up": 800,
+		"swipe_down": 800,
+		"swipe_left": 1200,
+		"swipe_right": 1200,
+		"pinch_hold": 2000
+	},
+	"actions": {
+		"swipe_up": { "task": "Open a new tab and go to https://ycombinator.com." },
+		"swipe_down": { "task": "Open a new tab and go to https://meta.com." },
+		"swipe_left": { "task": "Open a new tab and go to https://apple.com." },
+		"swipe_right": { "task": "Open a new tab and go to https://logitech.com." },
+		"pinch_hold:Right": { "task": "Open a new tab and go to https://duckduckgo.com." }
+	}
+}

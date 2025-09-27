@@ -2,4 +2,5 @@ opencv-python
 mediapipe
 numpy
 typer
-
+browser-use
+ruff
