@@ -1,6 +1,10 @@
-opencv-python
 mediapipe
 numpy
 typer
 browser-use
 ruff
+dlib==19.24.4
+numpy==1.26.4
+opencv-python==4.10.0.82
+setuptools==70.0.0
+pyautogui

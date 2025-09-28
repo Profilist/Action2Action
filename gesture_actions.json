@@ -1,17 +1,24 @@
 {
-	"min_confidence": 0.7,
+	"min_confidence": 0.3,
 	"cooldowns_ms": {
 		"swipe_up": 800,
 		"swipe_down": 800,
 		"swipe_left": 1200,
 		"swipe_right": 1200,
-		"pinch_hold": 2000
+		"pinch_hold": 2000,
+		"open_palm": 2000,
+		"point": 2000,
+		"fist": 2000
 	},
 	"actions": {
-		"swipe_up": { "task": "Open a new tab and go to https://ycombinator.com." },
-		"swipe_down": { "task": "Open a new tab and go to https://meta.com." },
-		"swipe_left": { "task": "Open a new tab and go to https://apple.com." },
-		"swipe_right": { "task": "Open a new tab and go to https://logitech.com." },
-		"pinch_hold:Right": { "task": "Open a new tab and go to https://duckduckgo.com." }
+		"swipe_up": { "command": "nothing" },
+		"swipe_down": { "command": "nothing" },
+		"swipe_left": { "command": "nothing" },
+		"swipe_right": { "command": "nothing" },
+		"pinch_hold:Right": { "command": "tab_open", "args": { "url": "https://luma.com/techto-studenthack-sep-27-2025" } },
+		"pinch_hold:Left": { "command": "event_to_calendar", "args": { "wait_open_s": 2.0 } },
+		"open_palm": { "command": "next_slide" },
+		"point": { "command": "open_slides", "args": { "url": "https://docs.google.com/presentation/d/1tYkGiMxOQnLlPHtU1YlVy9Wu0rGHk6vwZJ8tmEpFwyU/edit?slide=id.p1#slide=id.p1" } },
+		"fist": { "steps": [{"command": "tab_open", "args": { "url": "https://docs.google.com/spreadsheets/d/1IC99ZnyQtyWZkgRfVYjuQQLICmuir_rFrLXH1FOeCRQ/edit?usp=sharing" } }, {"task": "Make sure you're on https://docs.google.com/spreadsheets/d/1IC99ZnyQtyWZkgRfVYjuQQLICmuir_rFrLXH1FOeCRQ/edit?usp=sharing. Find patient Daniel and click to open his tab, once it's open, you're done."}] }
 	}
 }

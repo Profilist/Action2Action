@@ -3,11 +3,12 @@
 	"pinch_exit": 0.45,
 	"smoothing_alpha": 0.6,
 	"cooldown_ms": 250,
-	"enabled_gestures": ["open_palm", "fist", "point", "pinch", "pinch_hold", "pinch_release", "swipe_left", "swipe_right", "swipe_up", "swipe_down"],
+	"enabled_gestures": ["open_palm", "fist", "point", "pinch", "pinch_hold"	, "swipe_left", "swipe_right", "swipe_up", "swipe_down"],
 	"swipe_window_size": 10,
 	"swipe_speed_thresh": 0.6,
 	"swipe_min_cosine": 0.75,
 	"swipe_min_displacement": 0.08,
-	"pinch_dwell_ms": 250
+	"pinch_dwell_ms": 250,
+	"static_dwell_ms": 1000
 }
 

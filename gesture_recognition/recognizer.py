@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Deque, Tuple
 from collections import deque
 
@@ -73,11 +73,15 @@ class GestureRecognizer:
             "Left": {},
             "Right": {},
         }
+        # Static gesture dwell configuration/state (emit only after continuous hold)
+        self._static_dwell_ms: int = 1000
+        self._static_hold_start_ms: Dict[str, int] = {}
+        self._static_hold_emitted: Dict[str, bool] = {}
 
     def on_event(self, callback: Callable[[GestureEvent], None]) -> None:
         self._callback = callback
 
-    def start(self, camera_index: int = 0, debug: bool = False) -> None:
+    def start(self, camera_index: int = 0, debug: bool = False, frame_callback: Optional[Callable[[np.ndarray], None]] = None) -> None:
         self._debug = debug
         cap = cv2.VideoCapture(camera_index)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -90,6 +94,13 @@ class GestureRecognizer:
                 break
             # Mirror for user-friendly UX
             frame = cv2.flip(frame, 1)
+            # External per-frame hook (e.g., eye gaze overlay)
+            if frame_callback is not None:
+                try:
+                    frame_callback(frame)
+                except Exception:
+                    # Do not break gesture loop on callback errors
+                    pass
             events = self.process_frame(frame)
             for ev in events:
                 if self._callback:
@@ -165,6 +176,7 @@ class GestureRecognizer:
             return events
 
         frame_types: set[str] = set()
+        seen_static_keys: set[str] = set()
         for hand_landmarks, handedness in zip(
             results.multi_hand_landmarks,
             results.multi_handedness,
@@ -178,9 +190,18 @@ class GestureRecognizer:
                 finger_states, lm, palm_scale, label, hand_score
             )
             for ev in static_events:
-                if self._is_enabled(ev.type) and self._should_emit(ev.type):
-                    events.append(self._smooth(ev))
                 frame_types.add(ev.type)
+                if not self._is_enabled(ev.type):
+                    continue
+                if self._is_static_gesture(ev.type):
+                    gated = self._apply_static_dwell(ev, seen_static_keys)
+                    if gated is None:
+                        continue
+                    if self._should_emit(ev.type):
+                        events.append(self._smooth(gated))
+                else:
+                    if self._should_emit(ev.type):
+                        events.append(self._smooth(ev))
             # Dynamic updates per hand
             self._update_motion_history(label, lm)
             dyn_events = self._detect_dynamic(label, lm, palm_scale)
@@ -196,6 +217,9 @@ class GestureRecognizer:
                     self._drawing_styles.get_default_hand_landmarks_style(),
                     self._drawing_styles.get_default_hand_connections_style(),
                 )
+        # Reset static dwell state for gestures not seen in this frame
+        self._finalize_static_dwell(seen_static_keys)
+
         # Update overlay label cache
         now_ms = int(time.time() * 1000)
         if frame_types:
@@ -205,6 +229,39 @@ class GestureRecognizer:
         else:
             self._last_frame_labels = []
         return events
+
+    def _is_static_gesture(self, gesture_type: str) -> bool:
+        if gesture_type in ("pinch_hold"):
+            return False
+        if gesture_type.startswith("swipe_"):
+            return False
+        # Treat open_palm, fist, point, pinch as static
+        return True
+
+    def _apply_static_dwell(
+        self, event: GestureEvent, seen_static_keys: set[str]
+    ) -> Optional[GestureEvent]:
+        now_ms = int(time.time() * 1000)
+        key = f"{event.type}_{event.handedness}"
+        seen_static_keys.add(key)
+        start = self._static_hold_start_ms.get(key)
+        if start is None:
+            self._static_hold_start_ms[key] = now_ms
+            self._static_hold_emitted[key] = False
+            return None
+        if not self._static_hold_emitted.get(key, False):
+            if (now_ms - start) >= self._static_dwell_ms:
+                self._static_hold_emitted[key] = True
+                return event
+        return None
+
+    def _finalize_static_dwell(self, seen_static_keys: set[str]) -> None:
+        # Clear dwell tracking for any static gesture not observed this frame
+        tracked_keys = list(self._static_hold_start_ms.keys())
+        for key in tracked_keys:
+            if key not in seen_static_keys:
+                self._static_hold_start_ms.pop(key, None)
+                self._static_hold_emitted.pop(key, None)
 
     def _centroid(self, lm) -> Tuple[float, float]:
         w = np.array([lm[0].x, lm[0].y])
@@ -316,9 +373,6 @@ class GestureRecognizer:
         # Transition off
         if pinch_off and active:
             self._pinch_active[handedness] = False
-            # Emit pinch_release if we had held long enough (or always emit)
-            if self._pinch_hold_emitted[handedness]:
-                events.append(GestureEvent("pinch_release", handedness, 0.9, now_ms))
             self._pinch_hold_emitted[handedness] = False
             self._pinch_start_ms[handedness] = 0
         return events
@@ -465,6 +519,8 @@ class GestureRecognizer:
         enabled = cfg.get("enabled_gestures")
         if isinstance(enabled, list):
             self._enabled_gestures = set(map(str, enabled))
+        # Static dwell
+        self._static_dwell_ms = int(cfg.get("static_dwell_ms", self._static_dwell_ms))
         # Mediapipe options cannot be changed after creation (simple approach): advise recreate if changed
         mdc = cfg.get("min_detection_confidence")
         mtc = cfg.get("min_tracking_confidence")
